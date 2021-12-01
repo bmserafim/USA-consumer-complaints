@@ -1,1 +1,258 @@
 
+-- Quick looking at the table
+select *
+from consumer_complaints
+limit 10;
+
+-- Finding date range
+select substr(date_received, 7, 4) as 'Year',
+	     substr(date_received, 1, 2) as 'Month',
+	     substr(date_received, 4, 2) as 'Day',
+	     last_value (date_received) over (order by 1,2,3),
+	     date_received
+from consumer_complaints
+order by 1, 2, 3;
+  
+-- Complaints by product (2011 - 2016), ranked
+select distinct RANK() over (
+		     order by count(*) desc
+		     ) as 'Rank',
+	     product,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	 order by 3), 4) as 'percent. of total'   
+from consumer_complaints
+group by product
+order by 3 desc;
+
+-- Mortgage complains, ranked by issue (2011 - 2016)
+select distinct RANK() over (
+		     order by count(*) desc
+	       ) as 'Rank',
+	     issue,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	       order by 3), 4) as 'percent. of total'  
+from consumer_complaints
+where product = 'Mortgage'
+group by issue 
+order by 3 desc
+limit 10;
+
+-- Complaints by sub-product (2011 - 2016), ranked
+select distinct RANK() over (
+		     order by count(*) desc
+		     ) as 'Rank',
+	    sub_product,
+	    count(*) as 'number of complaints',
+	    round(1.0 * count(*) / sum(count(*)) over (
+	   	  order by 3), 4) as 'percent. of total'  
+from consumer_complaints
+group by sub_product
+order by 3 desc;
+
+-- Complaints by company (2011 - 2016), ranked - Top 10
+select distinct RANK() over (
+		     order by count(*) desc
+		     ) as 'Rank',
+	     company,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	       order by 3), 4) as 'percent. of total'  
+from consumer_complaints
+group by company 
+order by 3 desc
+limit 10;
+
+-- Complaints of Bank of America (2011 - 2016), ranked by product - Top 10 
+select distinct RANK() over (
+		     order by count(*) desc
+		     ) as 'Rank',
+	     product,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'   
+from consumer_complaints
+where company = 'Bank of America'
+group by product
+order by 3 desc
+limit 10;
+
+-- Complaints by state (2011 - 2016), ranked - Top 10
+select distinct RANK() over (
+		     order by count(*) desc
+		     ) as 'Rank',
+	     state,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'  
+from consumer_complaints
+group by state 
+order by 3 desc
+limit 10;
+
+-- Finding most common products, and how much of total each one represents, in California
+select distinct RANK() over (
+		     order by count(*) desc
+		     ) as 'Rank',
+	     product,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'   
+from consumer_complaints
+where state = 'CA'
+group by product
+order by 3 desc
+limit 10;
+
+-- Finding most common products, and how much of total each one represents, in New Jersey
+select distinct RANK() over (
+		     order by count(*) desc
+		     ) as 'Rank',
+	     product,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'   
+from consumer_complaints
+where state = 'NJ'
+group by product
+order by 3 desc
+limit 10;
+
+-- Finding most common products, and how much of total each one represents, in Maryland
+select distinct RANK() over (
+		     order by count(*) desc
+		     ) as 'Rank',
+	     product,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'   
+from consumer_complaints
+where state = 'MD'
+group by product
+order by 3 desc
+limit 10;
+
+-- Finding the complaints distribuition over the years, between 2012 and 2015
+select cast(substr(date_received, 7, 10) as integer) as 'Year',
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 1), 4) as 'percent. of total'
+from consumer_complaints
+where Year between 2012 and 2015
+group by 1
+order by 1;
+
+-- Complaints by month (2012 - 2015) - Seasonality 
+select substr(date_received, 1, 2),
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'
+from consumer_complaints
+group by 1
+order by 1;
+
+-- Complaints over time, by product (Top 5) from 2012 to 2015
+select distinct row_number() over (
+		     partition by substr(date_received, 7, 10)
+	       order by count(*) desc
+		     ) as 'Rank',
+	     product,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total',
+	       substr(date_received, 7, 10) as 'Year'	   
+from consumer_complaints
+group by Year, product
+order by Year, 3 desc;
+
+-- Complaints over time, by company (Top 5) from 2012 to 2015
+select cast(substr(date_received, 7, 10) as integer) as 'Year',
+	     company,
+	     count(*) as 'number of complaints',
+	     1.0 * (LEAD(count(*)) over(
+	   	   partition by company
+	   	   order by company) - count(*))/count(*) 'Change (in dec. points)'
+from consumer_complaints
+where (company = 'Equifax' or 
+	     company = 'Experian' OR
+	     company = 'Bank of America' OR
+	     company = 'JPMorgan Chase & Co.' or
+	     company = 'Wells Fargo & Company') AND 
+		     (Year = 2012 or 
+		      Year = 2015)
+group by Year, company
+order by 2;
+
+-- Complains by issue (2011 - 2016), from 'Equifax'
+select distinct issue,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'  
+from consumer_complaints
+where company = 'Equifax'
+group by issue 
+order by 3 desc
+limit 10;
+
+-- Complains by issue (2011 - 2016), from 'Experian'
+select distinct issue,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'  
+from consumer_complaints
+where company = 'Experian'
+group by issue 
+order by 3 desc
+limit 10;
+
+-- Complaints disputed by consumers over time, between 2012 and 2015
+select cast(substr(date_received, 7, 10) as integer) as 'Year',
+	     count(*) as 'number of complaints',
+	     "consumer_disputed?"
+from consumer_complaints
+where Year between 2012 and 2015 
+group by 1, 3
+order by 1;
+
+
+-- Queries not used in the presentation:
+
+-- Evolution of complaints throughout time, by company
+select distinct row_number() over (
+		     partition by substr(date_received, 7, 10)
+	       order by count(*) desc
+		     ) as 'Rank',
+	     company,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total',
+	       substr(date_received, 7, 10) as 'Year'	   
+from consumer_complaints
+group by Year, company
+order by Year, 3 desc;
+
+
+-- Finding most common issues, and how much of total each one represents
+select distinct issue,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'  
+from consumer_complaints
+group by issue 
+order by 3 desc;
+
+-- Finding most common sub-issues, and how much of total each one represents
+select distinct sub_issue,
+	     count(*) as 'number of complaints',
+	     round(1.0 * count(*) / sum(count(*)) over (
+	   	   order by 3), 4) as 'percent. of total'  
+from consumer_complaints
+group by sub_issue 
+order by 3 desc;
+
+-- Finding how many complaints were disputed by customers
+select "consumer_disputed?",
+	     count(*)
+from consumer_complaints
+group by 1;
