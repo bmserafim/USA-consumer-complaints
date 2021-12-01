@@ -1,5 +1,5 @@
 # USA-consumer-complaints
-A quantitative/qualitative analysis of an SQL database, containing finance complaints filed by american consumers, from 12/2011 to 04/2016.
+##A quantitative/qualitative analysis of an SQL database, containing finance complaints filed by american consumers, from 12/2011 to 04/2016.
 
 The Consumer Financial Protection Bureau (CFPB - USA) collects complaints about consumer financial products and services, and send it to companies for response. Complaints vary in a wide range, from mortgage applications to credit reports.
 
